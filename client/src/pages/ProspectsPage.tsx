@@ -274,7 +274,9 @@ export default function ProspectsPage() {
   const isCompleted = stages.every(
     stage => (selectedProspect.documentsByStage[stage] || []).length > 0 && (selectedProspect.documentsByStage[stage] || []).every(doc => {
       if (stage === 'Closing') {
-        return doc.type === 'Disclosure' || doc.type === 'LoanDoc' ? doc.status.sent && doc.status.signed && doc.status.filled : doc.status === 'Approved';
+        return doc.type === 'Disclosure' || doc.type === 'LoanDoc' ? 
+          (isClosingStatus(doc.status) ? doc.status.sent && doc.status.signed && doc.status.filled : doc.status === 'Approved') : 
+          doc.status === 'Approved';
       } else {
         return doc.status === 'Approved';
       }
@@ -674,7 +676,7 @@ export default function ProspectsPage() {
             <h2 className="text-xl font-bold">Prospects</h2>
             <button
               className="bg-blue-600 text-white px-4 py-2 rounded-lg border border-blue-600 font-medium hover:bg-blue-700 transition-colors"
-              onClick={() => setShowModal(true)}
+              onClick={handleCreateProspect}
             >
               New Prospect
             </button>
@@ -843,7 +845,7 @@ export default function ProspectsPage() {
         {selectedProspect.status === 'Rejected' && selectedProspect.rejectedAtStage && (
           <>
             <div className="text-red-700 font-semibold mt-2 flex items-center gap-2">
-              <FaTimes className="text-lg" /> This prospect was rejected at stage: {selectedProspect.rejectedAtStage}
+              <FaTimes /> This prospect was rejected at stage: {selectedProspect.rejectedAtStage}
             </div>
             <button
               className="mt-2 flex items-center gap-1 px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 shadow"
@@ -864,7 +866,7 @@ export default function ProspectsPage() {
                     idx === currentStageIdx ? 'border-blue-500 bg-blue-100' :
                     'border-gray-300 bg-white'}`}
                 >
-                  {idx < currentStageIdx ? <FaCheck className="text-lg" /> : idx + 1}
+                  {idx < currentStageIdx ? <FaCheck /> : idx + 1}
                 </div>
                 <span className="text-xs mt-2 text-center w-24 font-semibold">{stage.replace(' (Know Your Customer)', '')}</span>
               </div>
