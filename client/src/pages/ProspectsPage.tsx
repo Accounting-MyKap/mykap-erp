@@ -851,7 +851,7 @@ export default function ProspectsPage() {
               className="mt-2 flex items-center gap-1 px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 shadow"
               onClick={handleReopen}
             >
-              <FaUndo className="text-xs" /> Reopen
+              <FaUndo /> Reopen
             </button>
           </>
         )}

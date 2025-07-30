@@ -1,4 +1,5 @@
-import { createContext, useState, useContext, ReactNode } from 'react';
+import { createContext, useState, useContext } from 'react';
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginUser as apiLogin } from '../services/apiService';
 
