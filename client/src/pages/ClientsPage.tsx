@@ -169,7 +169,7 @@ export default function ClientsPage() {
                     {csvPreview.map((row, i) => (
                       <tr key={i}>
                         {Object.values(row).map((v, j) => (
-                          <td key={j} className="px-2 py-1 border">{v}</td>
+                          <td key={j} className="px-2 py-1 border">{String(v)}</td>
                         ))}
                       </tr>
                     ))}

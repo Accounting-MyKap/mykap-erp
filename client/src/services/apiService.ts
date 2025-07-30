@@ -1,4 +1,4 @@
-import { isNetworkError, getErrorMessage } from '../utils/networkUtils';
+
 
 // La URL base de nuestra API - usa la URL de producción en Vercel
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://mykap-erp-api.vercel.app/api';
