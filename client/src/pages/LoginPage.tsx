@@ -12,17 +12,16 @@ export default function LoginPage() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
+    
+    if (!email || !password) {
+      setError('Please enter both email and password');
+      return;
+    }
+    
     try {
       await login({ email, password });
-      // La navegación al dashboard la maneja el AuthContext
     } catch (err: any) {
-      console.warn('Login error:', err);
-      // En modo demo, cualquier credencial funciona
-      if (email && password) {
-        await login({ email, password });
-      } else {
-        setError('Please enter both email and password');
-      }
+      setError(err.message || 'Failed to log in');
     }
   };
 

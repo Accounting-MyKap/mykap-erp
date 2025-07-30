@@ -10,24 +10,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
 
   const login = async (credentials: any) => {
-    try {
-      const response = await apiLogin(credentials);
-      if (response.success) {
-        setUser(response.user);
-        navigate('/dashboard');
-      } else {
-        throw new Error(response.message);
-      }
-    } catch (error) {
-      // Fallback para desarrollo/demo - simula login exitoso
-      console.warn('API not available, using demo mode');
-      setUser({
-        id: 1,
-        firstName: 'Demo',
-        lastName: 'User',
-        email: credentials.email
-      });
+    const response = await apiLogin(credentials);
+    if (response.success) {
+      setUser(response.user);
       navigate('/dashboard');
+    } else {
+      throw new Error(response.message);
     }
   };
 
