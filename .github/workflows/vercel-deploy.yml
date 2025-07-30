@@ -45,7 +45,7 @@ jobs:
         vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
         vercel-project-id: ${{ secrets.VERCEL_API_PROJECT_ID }}
         working-directory: ./api
-        vercel-args: '--prod'
+        vercel-args: '--prod --cwd ./api'
     
     - name: Comment PR
       uses: actions/github-script@v7
@@ -97,7 +97,7 @@ jobs:
         vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
         vercel-project-id: ${{ secrets.VERCEL_CLIENT_PROJECT_ID }}
         working-directory: ./client
-        vercel-args: '--prod'
+        vercel-args: '--prod --cwd ./client'
     
     - name: Comment PR
       uses: actions/github-script@v7

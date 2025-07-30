@@ -1,25 +1,19 @@
 {
   "version": 2,
-  "name": "mykap-erp-api",
   "builds": [
     {
-      "src": "src/index.js",
+      "src": "src/server.ts",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "src/index.js"
+      "dest": "src/server.ts"
     }
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "src/index.js": {
-      "maxDuration": 30
-    }
   },
   "regions": ["iad1"],
   "headers": [
