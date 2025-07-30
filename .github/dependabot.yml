@@ -1,0 +1,68 @@
+version: 2
+updates:
+  # Mantener actualizadas las dependencias de npm para el API
+  - package-ecosystem: "npm"
+    directory: "/api"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "tu-usuario"
+    assignees:
+      - "tu-usuario"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "api"
+    ignore:
+      # Ignorar actualizaciones mayores que podrían romper la compatibilidad
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Mantener actualizadas las dependencias de npm para el Client
+  - package-ecosystem: "npm"
+    directory: "/client"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "tu-usuario"
+    assignees:
+      - "tu-usuario"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "client"
+    ignore:
+      # Ignorar actualizaciones mayores que podrían romper la compatibilidad
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Mantener actualizadas las GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "tu-usuario"
+    assignees:
+      - "tu-usuario"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions" 

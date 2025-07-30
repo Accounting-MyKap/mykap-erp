@@ -1,0 +1,121 @@
+name: Full Stack Deploy
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+    
+    - name: Install API dependencies
+      run: |
+        cd api
+        npm ci
+    
+    - name: Install Client dependencies
+      run: |
+        cd client
+        npm ci
+    
+    - name: Test API
+      run: |
+        cd api
+        npm test
+      env:
+        CI: true
+    
+    - name: Test Client
+      run: |
+        cd client
+        npm test
+      env:
+        CI: true
+    
+    - name: Build API
+      run: |
+        cd api
+        npm run build
+    
+    - name: Build Client
+      run: |
+        cd client
+        npm run build
+    
+    - name: Upload API build
+      uses: actions/upload-artifact@v4
+      with:
+        name: api-build
+        path: api/dist/
+    
+    - name: Upload Client build
+      uses: actions/upload-artifact@v4
+      with:
+        name: client-build
+        path: client/dist/
+  
+  deploy-api:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    environment: production
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download API build
+      uses: actions/download-artifact@v4
+      with:
+        name: api-build
+        path: api/dist/
+    
+    - name: Deploy API to production
+      run: |
+        echo "Deploying API to production server"
+        # Aquí irían los comandos específicos de despliegue
+        # Por ejemplo: rsync, scp, o comandos de tu proveedor de hosting
+    
+  deploy-client:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    environment: production
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download Client build
+      uses: actions/download-artifact@v4
+      with:
+        name: client-build
+        path: client/dist/
+    
+    - name: Deploy Client to production
+      run: |
+        echo "Deploying Client to production server"
+        # Aquí irían los comandos específicos de despliegue
+        # Por ejemplo: rsync, scp, o comandos de tu proveedor de hosting
+    
+  notify:
+    runs-on: ubuntu-latest
+    needs: [deploy-api, deploy-client]
+    if: always()
+    
+    steps:
+    - name: Notify deployment status
+      run: |
+        if [ "${{ needs.deploy-api.result }}" == "success" ] && [ "${{ needs.deploy-client.result }}" == "success" ]; then
+          echo "✅ Deployment successful!"
+        else
+          echo "❌ Deployment failed!"
+          exit 1
+        fi 

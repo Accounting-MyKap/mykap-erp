@@ -1,0 +1,162 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deploy-api:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+        cache-dependency-path: api/package-lock.json
+    
+    - name: Install API dependencies
+      run: |
+        cd api
+        npm ci
+    
+    - name: Run API tests
+      run: |
+        cd api
+        npm test
+      env:
+        CI: true
+    
+    - name: Build API
+      run: |
+        cd api
+        npm run build
+    
+    - name: Deploy API to Vercel
+      uses: amondnet/vercel-action@v25
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+        vercel-project-id: ${{ secrets.VERCEL_API_PROJECT_ID }}
+        working-directory: ./api
+        vercel-args: '--prod'
+    
+    - name: Comment PR
+      uses: actions/github-script@v7
+      if: github.event_name == 'pull_request'
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '🚀 API deployed to Vercel!'
+          })
+  
+  deploy-client:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+        cache-dependency-path: client/package-lock.json
+    
+    - name: Install Client dependencies
+      run: |
+        cd client
+        npm ci
+    
+    - name: Run Client tests
+      run: |
+        cd client
+        npm test
+      env:
+        CI: true
+    
+    - name: Build Client
+      run: |
+        cd client
+        npm run build
+    
+    - name: Deploy Client to Vercel
+      uses: amondnet/vercel-action@v25
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+        vercel-project-id: ${{ secrets.VERCEL_CLIENT_PROJECT_ID }}
+        working-directory: ./client
+        vercel-args: '--prod'
+    
+    - name: Comment PR
+      uses: actions/github-script@v7
+      if: github.event_name == 'pull_request'
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '🎨 Client deployed to Vercel!'
+          })
+  
+  preview-deploy:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: |
+        cd api && npm ci
+        cd ../client && npm ci
+    
+    - name: Build and deploy preview
+      run: |
+        cd api && npm run build
+        cd ../client && npm run build
+    
+    - name: Deploy API Preview
+      uses: amondnet/vercel-action@v25
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+        vercel-project-id: ${{ secrets.VERCEL_API_PROJECT_ID }}
+        working-directory: ./api
+    
+    - name: Deploy Client Preview
+      uses: amondnet/vercel-action@v25
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+        vercel-project-id: ${{ secrets.VERCEL_CLIENT_PROJECT_ID }}
+        working-directory: ./client
+    
+    - name: Comment Preview URLs
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '🔍 Preview deployments created! Check the Vercel dashboard for URLs.'
+          }) 

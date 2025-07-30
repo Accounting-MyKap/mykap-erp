@@ -1,9 +1,12 @@
 {
   "name": "investor-app",
   "version": "1.0.0",
-  "main": "data-manager.js",
+  "main": "src/server.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "ts-node-dev --respawn ./src/server.ts",
+    "start": "node ./dist/server.js",
+    "build": "tsc",
+    "vercel-build": "tsc"
   },
   "keywords": [],
   "author": "",
@@ -12,11 +15,20 @@
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "connect-mongo": "^5.1.0",
-    "dotenv": "^17.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.0",
     "ejs": "^3.1.10",
     "express": "^5.1.0",
-    "express-session": "^1.18.1",
+    "express-session": "^1.18.2",
     "i18n": "^0.15.1",
-    "mongoose": "^8.16.1"
+    "mongoose": "^8.16.4"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/express-session": "^1.18.2",
+    "@types/node": "^24.0.15",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.8.3"
   }
 }
