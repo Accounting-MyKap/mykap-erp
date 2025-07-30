@@ -11,6 +11,9 @@
     "vercel-build": "tsc -b && vite build",
     "type-check": "tsc --noEmit"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "react": "^19.1.0",
     "react-bootstrap-icons": "^1.11.6",
