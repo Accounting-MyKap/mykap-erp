@@ -1,7 +1,7 @@
 
 
 // La URL base de nuestra API - usa la URL de producción en Vercel
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://mykap-erp-api.vercel.app/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Función para registrar un nuevo usuario
 export const registerUser = async (userData: any) => {
@@ -20,9 +20,7 @@ export const registerUser = async (userData: any) => {
 
     return await response.json();
   } catch (error) {
-    // Fallback para desarrollo/demo - simula registro exitoso
-    console.warn('API not available, using demo mode');
-    return { success: true, message: 'Demo registration successful' };
+    throw new Error('Failed to register user');
   }
 };
 
@@ -43,16 +41,6 @@ export const loginUser = async (credentials: any) => {
 
     return await response.json();
   } catch (error) {
-    // Fallback para desarrollo/demo - simula login exitoso
-    console.warn('API not available, using demo mode');
-    return { 
-      success: true, 
-      user: {
-        id: 1,
-        firstName: 'Demo',
-        lastName: 'User',
-        email: credentials.email
-      }
-    };
+    throw new Error('Failed to log in');
   }
 };

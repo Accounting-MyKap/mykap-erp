@@ -29,7 +29,11 @@ mongoose.connect(process.env.DATABASE_URL!)
 // =================================================================
 
 app.use(cors({
-    origin: 'http://localhost:5173', // Permite peticiones desde el frontend de React
+    origin: [
+        'http://localhost:5173', // Desarrollo local
+        'https://mykap-1mik18iu5-guillermo-carrasquillas-projects.vercel.app', // Tu dominio de Vercel
+        'https://mykap-erp.vercel.app' // Dominio principal
+    ],
     credentials: true
 }));
 
@@ -112,6 +116,35 @@ app.get('/api/prospects/:id', isAuthenticated, async (req: Request, res: Respons
     const prospect = await dataManager.getProspectById(req.params.id);
     if (!prospect) return res.status(404).json({ message: 'Prospect not found' });
     res.json(prospect);
+});
+
+app.put('/api/prospects/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const updatedProspect = await dataManager.updateProspect(req.params.id, req.body);
+        res.json(updatedProspect);
+    } catch (error) {
+        res.status(400).json({ message: 'Failed to update prospect' });
+    }
+});
+
+app.put('/api/prospects/:id/status', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const { status } = req.body;
+        const updatedProspect = await dataManager.updateProspectStatus(req.params.id, status);
+        res.json(updatedProspect);
+    } catch (error) {
+        res.status(400).json({ message: 'Failed to update prospect status' });
+    }
+});
+
+app.put('/api/prospects/:id/documents', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const { stage, documentIndex, status } = req.body;
+        const updatedProspect = await dataManager.updateDocumentStatus(req.params.id, stage, documentIndex, status);
+        res.json(updatedProspect);
+    } catch (error) {
+        res.status(400).json({ message: 'Failed to update document status' });
+    }
 });
 
 // --- Lenders Module ---

@@ -6,13 +6,17 @@ import bcrypt from 'bcryptjs';
 // =================================================================
 
 interface ProspectData {
-    clientName: string;
-    email: string;
-    phoneNumber?: string;
-    loanAmount: number;
-    borrowerType: 'Individual' | 'Company';
-    loanType: 'Purchase' | 'Refinance';
-    assignedTo?: string;
+    name: string;
+    type: 'Individual' | 'Company';
+    loanType: string;
+    stage: string;
+    assignedTo: string;
+    status: string;
+    documentsByStage: any;
+    currentStage: string;
+    openStages: string[];
+    createdAt: string;
+    code: string;
 }
 
 // =================================================================
@@ -52,20 +56,20 @@ const documentSchema = new mongoose.Schema({
 });
 
 const prospectSchema = new mongoose.Schema({
-    clientName: { type: String, required: true },
-    email: { type: String, required: true },
-    phoneNumber: { type: String },
-    loanAmount: { type: Number, required: true },
-    borrowerType: { type: String, enum: ['Individual', 'Company'], required: true },
-    loanType: { type: String, enum: ['Purchase', 'Refinance'], required: true },
-    assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    status: {
-        type: String,
-        required: true,
-        enum: [ 'Prospect', 'Pre-validation', 'KYC', 'Title Work', 'Underwriting', 'Appraisal', 'Closing', 'Funded', 'Denied', 'On Hold' ],
-        default: 'Pre-validation'
-    },
-    documents: [documentSchema]
+    name: { type: String, required: true },
+    type: { type: String, enum: ['Individual', 'Company'], required: true },
+    loanType: { type: String, required: true },
+    stage: { type: String, required: true },
+    assignedTo: { type: String, required: true },
+    status: { type: String, required: true, default: 'In Progress' },
+    documentsByStage: { type: Map, of: [documentSchema] },
+    currentStage: { type: String, required: true },
+    openStages: [{ type: String }],
+    createdAt: { type: String, required: true },
+    code: { type: String, required: true, unique: true },
+    closedAt: { type: String },
+    rejectedAt: { type: String },
+    rejectedAtStage: { type: String }
 }, { timestamps: true });
 
 const creditSchema = new mongoose.Schema({
@@ -143,27 +147,53 @@ async function getAvailablePortfolioLoans() {
 
 // --- Prospect Functions ---
 async function addProspect(prospectData: ProspectData) {
-    const preValidationDocs_Individual = [ { name: 'Valid ID (Passport or Driver License)', stage: 'Pre-validation' }, /* ... */ ];
-    const preValidationDocs_Company = [ { name: 'Articles of incorporation', stage: 'Pre-validation' }, /* ... */ ];
-    const kycDocs = [ { name: 'Customer application', stage: 'KYC' }, { name: 'Risk Matrix', stage: 'KYC' } ];
-    const titleWorkDocs = [ { name: 'Title Commitment', stage: 'Title Work' } ];
-
-    let allDocs = [...kycDocs, ...titleWorkDocs];
-    if (prospectData.borrowerType === 'Individual') {
-        allDocs = [...preValidationDocs_Individual, ...allDocs];
+    // Crear documentos por etapa según el tipo de prospecto
+    const documentsByStage = new Map();
+    
+    // Pre-validation documents
+    if (prospectData.type === 'Individual') {
+        documentsByStage.set('Pre-validation', [
+            { name: 'ID Document', type: 'Individual', status: 'Missing' },
+            { name: 'Bank Statement', type: 'Individual', status: 'Missing' }
+        ]);
     } else {
-        allDocs = [...preValidationDocs_Company, ...allDocs];
-    }
-    if (prospectData.loanType === 'Purchase') {
-        allDocs.push({ name: 'Purchase agreement', stage: 'Pre-validation' });
-    } else if (prospectData.loanType === 'Refinance') {
-        allDocs.push({ name: 'Deed', stage: 'Pre-validation' });
+        documentsByStage.set('Pre-validation', [
+            { name: 'Company Registration', type: 'Company', status: 'Missing' },
+            { name: 'Business License', type: 'Company', status: 'Missing' }
+        ]);
     }
     
-    // Creamos el prospecto y le pasamos los documentos en la creación
+    // KYC documents
+    documentsByStage.set('KYC (Know Your Customer)', [
+        { name: 'Risk Matrix', type: 'Other', status: 'Missing' }
+    ]);
+    
+    // Title Work documents
+    documentsByStage.set('Title Work', [
+        { name: 'Title Search', type: 'Other', status: 'Missing' },
+        { name: 'Title Insurance', type: 'Other', status: 'Missing' }
+    ]);
+    
+    // Underwriting documents
+    documentsByStage.set('Underwriting (UW)', [
+        { name: 'Credit Report', type: 'Other', status: 'Missing' },
+        { name: 'Income Verification', type: 'Other', status: 'Missing' }
+    ]);
+    
+    // Appraisal documents
+    documentsByStage.set('Appraisal', [
+        { name: 'Property Appraisal', type: 'Other', status: 'Missing' }
+    ]);
+    
+    // Closing documents
+    documentsByStage.set('Closing', [
+        { name: 'Disclosure Statement', type: 'Disclosure', status: { sent: false, signed: false, filled: false } },
+        { name: 'Loan Agreement', type: 'LoanDoc', status: { sent: false, signed: false, filled: false } }
+    ]);
+    
     const newProspect = new Prospect({
         ...prospectData,
-        documents: allDocs
+        documentsByStage: documentsByStage
     });
     
     return await newProspect.save();
@@ -177,8 +207,24 @@ async function getProspectById(id: string) {
 async function updateProspectStatus(id: string, newStatus: string) {
     return await Prospect.findByIdAndUpdate(id, { status: newStatus }, { new: true });
 }
-async function updateDocumentStatus(prospectId: string, documentId: string, newStatus: string) {
-    return await Prospect.updateOne({ _id: prospectId, 'documents._id': documentId }, { $set: { 'documents.$.status': newStatus } });
+async function updateDocumentStatus(prospectId: string, stage: string, documentIndex: number, status: any) {
+    const prospect = await Prospect.findById(prospectId);
+    if (!prospect) throw new Error('Prospect not found');
+    
+    const documentsByStage = prospect.documentsByStage || new Map();
+    const stageDocuments = documentsByStage.get(stage) || [];
+    
+    if (stageDocuments[documentIndex]) {
+        stageDocuments[documentIndex].status = status;
+        documentsByStage.set(stage, stageDocuments);
+        prospect.documentsByStage = documentsByStage;
+        return await prospect.save();
+    }
+    throw new Error('Document not found');
+}
+
+async function updateProspect(id: string, updateData: any) {
+    return await Prospect.findByIdAndUpdate(id, updateData, { new: true });
 }
 async function addCustomDocument(prospectId: string, documentName: string, stage: string) {
     const newDocument = { name: documentName, stage: stage, status: 'Pending' };
@@ -217,6 +263,7 @@ export default {
     addProspect,
     getAllProspects,
     getProspectById,
+    updateProspect,
     updateProspectStatus,
     updateDocumentStatus,
     addCustomDocument,

@@ -8,6 +8,9 @@
     "build": "tsc",
     "vercel-build": "tsc"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
