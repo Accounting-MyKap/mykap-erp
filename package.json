@@ -13,7 +13,6 @@
     "install:all": "npm install && cd api && npm install && cd ../client && npm install"
   },
   "dependencies": {
-    "react-icons": "^5.5.0",
     "concurrently": "^8.2.2"
   },
   "devDependencies": {
