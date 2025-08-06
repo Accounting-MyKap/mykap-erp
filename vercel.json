@@ -1,26 +1,15 @@
 {
-  "version": 2,
+  "buildCommand": "cd client && npm install && npm run build",
+  "outputDirectory": "client/dist",
   "functions": {
-    "api/src/server.ts": {
-      "maxDuration": 30
+    "api/*.js": {
+      "runtime": "nodejs18.x"
     }
   },
-  "builds": [
-    {
-      "src": "client/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/src/server.ts"
-    },
-    {
-      "handle": "filesystem"
+      "dest": "/api/$1"
     },
     {
       "src": "/(.*)",
