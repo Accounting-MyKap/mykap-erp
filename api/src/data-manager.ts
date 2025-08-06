@@ -24,11 +24,40 @@ interface ProspectData {
 // =================================================================
 
 const userSchema = new mongoose.Schema({
-    firstName: { type: String, required: true },
-    lastName: { type: String, required: true },
-    email: { type: String, required: true, unique: true, lowercase: true },
-    password: { type: String, required: true, select: false },
-    role: { type: String, required: true, default: 'Processor' }
+    firstName: { 
+        type: String, 
+        required: [true, 'First name is required'],
+        trim: true,
+        minlength: [2, 'First name must be at least 2 characters'],
+        maxlength: [50, 'First name cannot exceed 50 characters']
+    },
+    lastName: { 
+        type: String, 
+        required: [true, 'Last name is required'],
+        trim: true,
+        minlength: [2, 'Last name must be at least 2 characters'],
+        maxlength: [50, 'Last name cannot exceed 50 characters']
+    },
+    email: { 
+        type: String, 
+        required: [true, 'Email is required'], 
+        unique: true, 
+        lowercase: true,
+        trim: true,
+        match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please provide a valid email']
+    },
+    password: { 
+        type: String, 
+        required: [true, 'Password is required'], 
+        select: false,
+        minlength: [6, 'Password must be at least 6 characters']
+    },
+    role: { 
+        type: String, 
+        required: true, 
+        default: 'Processor',
+        enum: ['Admin', 'Processor', 'Manager']
+    }
 });
 
 userSchema.pre('save', async function(next) {
@@ -38,8 +67,21 @@ userSchema.pre('save', async function(next) {
 });
 
 const lenderSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true }
+    name: { 
+        type: String, 
+        required: [true, 'Lender name is required'],
+        trim: true,
+        minlength: [2, 'Lender name must be at least 2 characters'],
+        maxlength: [100, 'Lender name cannot exceed 100 characters']
+    },
+    email: { 
+        type: String, 
+        required: [true, 'Email is required'], 
+        unique: true,
+        lowercase: true,
+        trim: true,
+        match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please provide a valid email']
+    }
 });
 
 const portfolioLoanSchema = new mongoose.Schema({
@@ -51,26 +93,83 @@ const portfolioLoanSchema = new mongoose.Schema({
 
 const documentSchema = new mongoose.Schema({
     name: { type: String, required: true },
-    status: { type: String, enum: ['Pending', 'Received', 'Approved', 'Rejected'], default: 'Pending' },
+    type: { type: String, required: true },
+    status: { type: mongoose.Schema.Types.Mixed, required: true },
     stage: { type: String, required: true }
 });
 
 const prospectSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    type: { type: String, enum: ['Individual', 'Company'], required: true },
-    loanType: { type: String, required: true },
-    stage: { type: String, required: true },
-    assignedTo: { type: String, required: true },
-    status: { type: String, required: true, default: 'In Progress' },
+    name: { 
+        type: String, 
+        required: [true, 'Prospect name is required'],
+        trim: true,
+        minlength: [2, 'Prospect name must be at least 2 characters'],
+        maxlength: [100, 'Prospect name cannot exceed 100 characters']
+    },
+    type: { 
+        type: String, 
+        enum: {
+            values: ['Individual', 'Company'],
+            message: 'Type must be either Individual or Company'
+        }, 
+        required: [true, 'Prospect type is required']
+    },
+    loanType: { 
+        type: String, 
+        required: [true, 'Loan type is required'],
+        trim: true
+    },
+    stage: { 
+        type: String, 
+        required: [true, 'Stage is required'],
+        trim: true
+    },
+    assignedTo: { 
+        type: String, 
+        required: [true, 'Assigned user is required'],
+        trim: true
+    },
+    status: { 
+        type: String, 
+        required: true, 
+        default: 'In Progress',
+        enum: {
+            values: ['In Progress', 'Approved', 'Rejected', 'Closed'],
+            message: 'Status must be one of: In Progress, Approved, Rejected, Closed'
+        }
+    },
     documentsByStage: { type: Map, of: [documentSchema] },
-    currentStage: { type: String, required: true },
+    currentStage: { 
+        type: String, 
+        required: [true, 'Current stage is required'],
+        trim: true
+    },
     openStages: [{ type: String }],
-    createdAt: { type: String, required: true },
-    code: { type: String, required: true, unique: true },
+    createdAt: { 
+        type: String, 
+        required: [true, 'Created date is required']
+    },
+    code: { 
+        type: String, 
+        required: [true, 'Prospect code is required'], 
+        unique: true,
+        trim: true,
+        uppercase: true
+    },
     closedAt: { type: String },
     rejectedAt: { type: String },
     rejectedAtStage: { type: String }
 }, { timestamps: true });
+
+// Transform Map to Object when converting to JSON
+prospectSchema.set('toJSON', {
+    transform: function(doc: any, ret: any) {
+        if (ret.documentsByStage && ret.documentsByStage instanceof Map) {
+            ret.documentsByStage = Object.fromEntries(ret.documentsByStage);
+        }
+        return ret;
+    }
+});
 
 const creditSchema = new mongoose.Schema({
     prospectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Prospect' },
@@ -147,55 +246,73 @@ async function getAvailablePortfolioLoans() {
 
 // --- Prospect Functions ---
 async function addProspect(prospectData: ProspectData) {
+    // Validación de campos obligatorios
+    if (!prospectData.name || typeof prospectData.name !== 'string' || prospectData.name.trim() === '') {
+        throw new Error("El campo 'name' es obligatorio y no puede estar vacío.");
+    }
+    if (!prospectData.assignedTo || typeof prospectData.assignedTo !== 'string' || prospectData.assignedTo.trim() === '') {
+        throw new Error("El campo 'assignedTo' es obligatorio y no puede estar vacío.");
+    }
+
     // Crear documentos por etapa según el tipo de prospecto
     const documentsByStage = new Map();
-    
+
     // Pre-validation documents
-    if (prospectData.type === 'Individual') {
-        documentsByStage.set('Pre-validation', [
-            { name: 'ID Document', type: 'Individual', status: 'Missing' },
-            { name: 'Bank Statement', type: 'Individual', status: 'Missing' }
-        ]);
-    } else {
-        documentsByStage.set('Pre-validation', [
-            { name: 'Company Registration', type: 'Company', status: 'Missing' },
-            { name: 'Business License', type: 'Company', status: 'Missing' }
-        ]);
-    }
-    
+    documentsByStage.set('Pre-validation', [
+        { name: 'Personal Bank Statement', type: 'Other', status: 'Missing', stage: 'Pre-validation' },
+        { name: 'Articles of Incorporation', type: 'Other', status: 'Missing', stage: 'Pre-validation' },
+        { name: 'Operating Agreement', type: 'Other', status: 'Missing', stage: 'Pre-validation' },
+        { name: 'Bank Statement (3 months)', type: 'Other', status: 'Missing', stage: 'Pre-validation' },
+        { name: 'Purchase Agreement', type: 'Other', status: 'Missing', stage: 'Pre-validation' }
+    ]);
+
     // KYC documents
     documentsByStage.set('KYC (Know Your Customer)', [
-        { name: 'Risk Matrix', type: 'Other', status: 'Missing' }
+        { name: 'Risk Matrix', type: 'Other', status: 'Missing', stage: 'KYC (Know Your Customer)' }
     ]);
-    
+
     // Title Work documents
     documentsByStage.set('Title Work', [
-        { name: 'Title Search', type: 'Other', status: 'Missing' },
-        { name: 'Title Insurance', type: 'Other', status: 'Missing' }
+        { name: 'Title Commitment', type: 'Other', status: 'Missing', stage: 'Title Work' }
     ]);
-    
+
     // Underwriting documents
     documentsByStage.set('Underwriting (UW)', [
-        { name: 'Credit Report', type: 'Other', status: 'Missing' },
-        { name: 'Income Verification', type: 'Other', status: 'Missing' }
+        { name: 'UW Report', type: 'Other', status: 'Missing', stage: 'Underwriting (UW)' }
     ]);
-    
+
     // Appraisal documents
     documentsByStage.set('Appraisal', [
-        { name: 'Property Appraisal', type: 'Other', status: 'Missing' }
+        { name: 'Appraisal Report', type: 'Other', status: 'Missing', stage: 'Appraisal' }
     ]);
-    
+
     // Closing documents
     documentsByStage.set('Closing', [
-        { name: 'Disclosure Statement', type: 'Disclosure', status: { sent: false, signed: false, filled: false } },
-        { name: 'Loan Agreement', type: 'LoanDoc', status: { sent: false, signed: false, filled: false } }
+        // Disclosures
+        { name: 'Disclosures', type: 'Disclosure', status: { sent: false, signed: false, filled: false }, stage: 'Closing' },
+        { name: 'Loan Estimate', type: 'Disclosure', status: { sent: false, signed: false, filled: false }, stage: 'Closing' },
+        { name: 'Term Sheet', type: 'Disclosure', status: { sent: false, signed: false, filled: false }, stage: 'Closing' },
+        { name: 'Notice of Info', type: 'Disclosure', status: { sent: false, signed: false, filled: false }, stage: 'Closing' },
+        { name: 'Notice to Receive Copy of Appraisal', type: 'Disclosure', status: { sent: false, signed: false, filled: false }, stage: 'Closing' },
+        { name: 'Ach Form', type: 'Disclosure', status: { sent: false, signed: false, filled: false }, stage: 'Closing' },
+        // Loan Docs
+        { name: 'Promissory Note', type: 'LoanDoc', status: { sent: false, signed: false, filled: false }, stage: 'Closing' },
+        { name: 'Guaranty Agreement', type: 'LoanDoc', status: { sent: false, signed: false, filled: false }, stage: 'Closing' },
+        { name: 'Mortgage', type: 'LoanDoc', status: { sent: false, signed: false, filled: false }, stage: 'Closing' },
+        { name: 'Wire Transfer Breakdown', type: 'LoanDoc', status: { sent: false, signed: false, filled: false }, stage: 'Closing' }
     ]);
-    
+
     const newProspect = new Prospect({
         ...prospectData,
-        documentsByStage: documentsByStage
+        documentsByStage: documentsByStage,
+        stage: 'Pre-validation',
+        currentStage: 'Pre-validation',
+        openStages: ['Pre-validation'],
+        status: 'In Progress',
+        createdAt: new Date().toISOString(),
+        code: `PROS-${Date.now()}`
     });
-    
+
     return await newProspect.save();
 }
 async function getAllProspects() {
@@ -207,7 +324,7 @@ async function getProspectById(id: string) {
 async function updateProspectStatus(id: string, newStatus: string) {
     return await Prospect.findByIdAndUpdate(id, { status: newStatus }, { new: true });
 }
-async function updateDocumentStatus(prospectId: string, stage: string, documentIndex: number, status: any) {
+async function updateDocumentStatus(prospectId: string, stage: string, documentIndex: number) {
     const prospect = await Prospect.findById(prospectId);
     if (!prospect) throw new Error('Prospect not found');
     
@@ -215,10 +332,15 @@ async function updateDocumentStatus(prospectId: string, stage: string, documentI
     const stageDocuments = documentsByStage.get(stage) || [];
     
     if (stageDocuments[documentIndex]) {
-        stageDocuments[documentIndex].status = status;
-        documentsByStage.set(stage, stageDocuments);
-        prospect.documentsByStage = documentsByStage;
-        return await prospect.save();
+        // Solo cambiar de 'Missing' a 'Ready for Review'
+        if (stageDocuments[documentIndex].status === 'Missing') {
+            stageDocuments[documentIndex].status = 'Ready for Review';
+            documentsByStage.set(stage, stageDocuments);
+            prospect.documentsByStage = documentsByStage;
+            return await prospect.save();
+        }
+        // Si ya está en 'Ready for Review' o 'Approved', no hacer nada
+        return prospect;
     }
     throw new Error('Document not found');
 }
@@ -226,9 +348,122 @@ async function updateDocumentStatus(prospectId: string, stage: string, documentI
 async function updateProspect(id: string, updateData: any) {
     return await Prospect.findByIdAndUpdate(id, updateData, { new: true });
 }
-async function addCustomDocument(prospectId: string, documentName: string, stage: string) {
-    const newDocument = { name: documentName, stage: stage, status: 'Pending' };
-    return await Prospect.findByIdAndUpdate(prospectId, { $push: { documents: newDocument } }, { new: true });
+
+async function addDocument(prospectId: string, stage: string, name: string) {
+    const prospect = await Prospect.findById(prospectId);
+    if (!prospect) throw new Error('Prospect not found');
+    
+    const documentsByStage = prospect.documentsByStage || new Map();
+    const stageDocuments = documentsByStage.get(stage) || [];
+    
+    const newDocument = { 
+        name, 
+        type: 'Other', 
+        status: 'Ready for Review', 
+        stage 
+    };
+    
+    stageDocuments.push(newDocument);
+    documentsByStage.set(stage, stageDocuments);
+    prospect.documentsByStage = documentsByStage;
+    return await prospect.save();
+}
+
+async function rejectProspect(prospectId: string, stage: string) {
+    const prospect = await Prospect.findById(prospectId);
+    if (!prospect) throw new Error('Prospect not found');
+    
+    prospect.status = 'Rejected';
+    prospect.rejectedAtStage = stage;
+    prospect.rejectedAt = new Date().toISOString();
+    return await prospect.save();
+}
+
+async function reopenProspect(prospectId: string) {
+    const prospect = await Prospect.findById(prospectId);
+    if (!prospect) throw new Error('Prospect not found');
+    
+    prospect.status = 'In Progress';
+    prospect.rejectedAtStage = undefined;
+    prospect.rejectedAt = undefined;
+    return await prospect.save();
+}
+
+async function approveDocument(prospectId: string, stage: string, docIdx: number) {
+    const prospect = await Prospect.findById(prospectId);
+    if (!prospect) throw new Error('Prospect not found');
+    
+    const documentsByStage = prospect.documentsByStage || new Map();
+    const stageDocuments = documentsByStage.get(stage) || [];
+    
+    if (stageDocuments[docIdx]) {
+        stageDocuments[docIdx].status = 'Approved';
+        documentsByStage.set(stage, stageDocuments);
+        prospect.documentsByStage = documentsByStage;
+        return await prospect.save();
+    }
+    throw new Error('Document not found');
+}
+
+async function rejectDocument(prospectId: string, stage: string, docIdx: number) {
+    const prospect = await Prospect.findById(prospectId);
+    if (!prospect) throw new Error('Prospect not found');
+    
+    const documentsByStage = prospect.documentsByStage || new Map();
+    const stageDocuments = documentsByStage.get(stage) || [];
+    
+    if (stageDocuments[docIdx]) {
+        stageDocuments[docIdx].status = 'Rejected';
+        documentsByStage.set(stage, stageDocuments);
+        prospect.documentsByStage = documentsByStage;
+        return await prospect.save();
+    }
+    throw new Error('Document not found');
+}
+
+async function updateClosingCheckbox(prospectId: string, stage: string, docIdx: number, field: string) {
+    console.log(`[DEBUG] updateClosingCheckbox called with:`, { prospectId, stage, docIdx, field });
+    
+    const prospect = await Prospect.findById(prospectId);
+    if (!prospect) throw new Error('Prospect not found');
+    
+    const documentsByStage = prospect.documentsByStage || new Map();
+    const stageDocuments = documentsByStage.get(stage) || [];
+    
+    console.log(`[DEBUG] Stage documents count:`, stageDocuments.length);
+    console.log(`[DEBUG] Document at index ${docIdx}:`, stageDocuments[docIdx]);
+    
+    if (stageDocuments[docIdx] && stageDocuments[docIdx].status && typeof stageDocuments[docIdx].status === 'object') {
+        // Crear una copia profunda del array de documentos
+        const updatedDocuments = stageDocuments.map((doc: any, index: number) => {
+            if (index === docIdx) {
+                const closingStatus = { ...doc.status } as any;
+                console.log(`[DEBUG] Current closing status:`, closingStatus);
+                
+                if (field in closingStatus) {
+                    const oldValue = closingStatus[field];
+                    closingStatus[field] = !closingStatus[field];
+                    console.log(`[DEBUG] Updated ${field} from ${oldValue} to ${closingStatus[field]}`);
+                    
+                    return {
+                        ...doc,
+                        status: closingStatus
+                    };
+                }
+            }
+            return doc;
+        });
+        
+        // Actualizar el Map con el nuevo array
+        documentsByStage.set(stage, updatedDocuments);
+        prospect.documentsByStage = documentsByStage;
+        prospect.markModified('documentsByStage');
+        
+        const savedProspect = await prospect.save();
+        console.log(`[DEBUG] Prospect saved successfully`);
+        return savedProspect;
+    }
+    throw new Error('Document not found or invalid field');
 }
 
 // --- Credit Functions ---
@@ -266,7 +501,12 @@ export default {
     updateProspect,
     updateProspectStatus,
     updateDocumentStatus,
-    addCustomDocument,
+    addDocument,
+    rejectProspect,
+    reopenProspect,
+    approveDocument,
+    rejectDocument,
+    updateClosingCheckbox,
 
     // Credits
     getAllCredits,

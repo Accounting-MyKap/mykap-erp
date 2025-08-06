@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { registerUser } from '../services/apiService';
+import { apiService } from '../services/apiService';
 
 export default function RegisterPage() {
   const [firstName, setFirstName] = useState('');
@@ -13,7 +13,7 @@ export default function RegisterPage() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     try {
-      await registerUser({ firstName, lastName, email, password });
+      await apiService.registerUser({ firstName, lastName, email, password });
       alert('Registration successful! Please log in.');
       navigate('/login');
     } catch (error) {
