@@ -5,13 +5,11 @@
       "maxDuration": 30
     }
   },
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/src/server.ts"
-    }
-  ],
   "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/src/server.ts"
+    },
     {
       "handle": "filesystem"
     },
