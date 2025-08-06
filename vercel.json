@@ -9,10 +9,15 @@
     {
       "source": "/api/(.*)",
       "destination": "/api/src/server.ts"
+    }
+  ],
+  "routes": [
+    {
+      "handle": "filesystem"
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ],
   "buildCommand": "cd client && npm install && npm run build",
