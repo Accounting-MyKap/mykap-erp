@@ -9,7 +9,7 @@
     "build": "npm run build:api && npm run build:client",
     "build:api": "cd api && npm run build",
     "build:client": "cd client && npm run build",
-    "vercel-build": "cd client && npm install && npm run build",
+    "vercel-build": "cd client && npm install && npm run build && cp -r dist/* ../ 2>/dev/null || xcopy dist\\* ..\\ /E /I /Y 2>nul || robocopy dist .. /E",
     "install:all": "npm install && cd api && npm install && cd ../client && npm install"
   },
   "dependencies": {
