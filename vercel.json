@@ -1,8 +1,5 @@
 {
   "version": 2,
-  "buildCommand": "cd client && npm run vercel-build",
-  "outputDirectory": "client/dist",
-  "installCommand": "npm install && cd client && npm install && cd ../api && npm install",
   "functions": {
     "api/src/server.ts": {
       "maxDuration": 30
@@ -20,8 +17,5 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
+  ]
 }
