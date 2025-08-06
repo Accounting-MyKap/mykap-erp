@@ -98,6 +98,12 @@ app.use('/api/credits', isAuthenticated, require('./routes/credits.routes').defa
 // --- SERVER INITIALIZATION ---
 // =================================================================
 
-app.listen(port, () => {
-    logger.info(`API Server (TypeScript) listening on http://localhost:${port}`);
-});
+// Para desarrollo local
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(port, () => {
+        logger.info(`🚀 Server running on http://localhost:${port}`);
+    });
+}
+
+// Para Vercel
+export default app;
