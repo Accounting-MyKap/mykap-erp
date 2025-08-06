@@ -18,6 +18,6 @@
       "dest": "/index.html"
     }
   ],
-  "buildCommand": "npm run build:client",
+  "buildCommand": "cd client && npm install && cd .. && npm run build:client",
   "outputDirectory": "client/dist"
 }
