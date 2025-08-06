@@ -28,7 +28,6 @@ export function useProspects(options: UseProspectsOptions = {}) {
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(options.page || 1);
 
   const fetchProspects = useCallback(async () => {
@@ -37,7 +36,6 @@ export function useProspects(options: UseProspectsOptions = {}) {
       setError(null);
       const data = await apiService.getProspects();
       setProspects(data);
-      setTotalCount(data.length); // En el futuro, esto vendría del backend
     } catch (err) {
       const errorMessage = err instanceof AxiosError 
         ? err.response?.data?.message || 'Failed to fetch prospects'
