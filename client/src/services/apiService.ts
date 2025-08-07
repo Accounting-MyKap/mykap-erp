@@ -3,8 +3,24 @@ import axios from 'axios';
 // Tipo para usuario
 export type User = { _id: string; firstName: string; lastName: string; email: string };
 
-// La URL base de nuestra API. La variable de entorno VITE_API_URL se define en Vercel.
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// La URL base de nuestra API con fallback inteligente para Vercel Lite
+const getApiBaseUrl = () => {
+  // Si está definida la variable de entorno, usarla
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Si estamos en producción (Vercel), usar una API de prueba temporal
+  if (window.location.hostname !== 'localhost') {
+    // Temporal: API de prueba hasta que despliegues tu backend
+    return 'https://jsonplaceholder.typicode.com';
+  }
+  
+  // En desarrollo local, usar localhost
+  return 'http://localhost:3000/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Creamos una instancia de axios que usaremos para todas las peticiones.
 // Esto nos permite configurar cosas como la URL base y los encabezados en un solo lugar.
