@@ -10,10 +10,10 @@ const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_URL;
   }
   
-  // Si estamos en producción (Vercel), usar una API de prueba temporal
+  // Si estamos en producción (Vercel), usar las Vercel Functions
   if (window.location.hostname !== 'localhost') {
-    // Temporal: API de prueba hasta que despliegues tu backend
-    return 'https://jsonplaceholder.typicode.com';
+    // Usar las Vercel Functions en el mismo dominio
+    return '/api';
   }
   
   // En desarrollo local, usar localhost
