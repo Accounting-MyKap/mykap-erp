@@ -5,7 +5,7 @@
   "installCommand": "cd client && npm install",
   "functions": {
     "client/api/**/*.ts": {
-      "runtime": "nodejs20.x"
+      "runtime": "nodejs18.x"
     }
   },
   "rewrites": [
