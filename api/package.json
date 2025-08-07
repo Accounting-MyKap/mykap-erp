@@ -25,7 +25,7 @@
     "express-rate-limit": "^8.0.1",
     "express-session": "^1.18.2",
     "i18n": "^0.15.1",
-    "mongoose": "^8.16.4",
+    "mongoose": "^8.17.0",
     "winston": "^3.17.0"
   },
   "devDependencies": {
