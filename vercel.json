@@ -4,14 +4,14 @@
   "outputDirectory": "client/dist",
   "installCommand": "cd client && npm install",
   "functions": {
-    "client/api/**/*.ts": {
+    "api/**/*.ts": {
       "runtime": "@vercel/node@3.0.7"
     }
   },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/client/api/$1"
+      "destination": "/api/$1"
     },
     {
       "source": "/(.*)",
