@@ -208,8 +208,22 @@ async function registerUser(firstName: string, lastName: string, email: string, 
 }
 async function loginUser(email: string, password: string) {
     const user = await User.findOne({ email }).select('+password');
-    if (!user) return null;
-    const isMatch = await bcrypt.compare(password, user.password);
+    if (!user || !user.password) return null;
+
+    let isMatch = false;
+    // Check if the stored password is a valid bcrypt hash
+    if (user.password.startsWith('$2')) {
+        isMatch = await bcrypt.compare(password, user.password);
+    } else {
+        // Fallback for plain text passwords
+        isMatch = (password === user.password);
+        if (isMatch) {
+            // Upgrade password to hash
+            user.password = await bcrypt.hash(password, 12);
+            await user.save();
+        }
+    }
+
     if (!isMatch) return null;
     return user;
 }

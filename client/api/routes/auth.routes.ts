@@ -54,7 +54,12 @@ router.post('/login', async (req: Request, res: Response) => {
         
         const user = await dataManager.loginUser(email, password);
         if (user) {
-            req.session.userId = user._id.toString();
+            req.session.user = {
+                id: user._id.toString(),
+                firstName: user.firstName,
+                email: user.email,
+                role: user.role
+            };
             const userResponse = { _id: user._id, firstName: user.firstName, email: user.email, role: user.role };
             logger.info('Login successful', { email, userId: user._id });
             res.json({ success: true, user: userResponse });
@@ -69,7 +74,7 @@ router.post('/login', async (req: Request, res: Response) => {
 });
 
 router.post('/logout', (req: Request, res: Response) => {
-    const userId = req.session.userId;
+    const userId = req.session.user?.id;
     logger.info('Logout attempt', { userId });
     
     req.session.destroy((err: any) => {
@@ -86,8 +91,12 @@ router.post('/logout', (req: Request, res: Response) => {
 router.get('/users/current', async (req: Request, res: Response) => {
     // Note: The 'isAuthenticated' middleware will be applied in the main server file
     // before this route is mounted, so we don't need to add it here again.
-    const user = await dataManager.getUserById(req.session.userId!);
-    res.json(user);
+    if (req.session.user) {
+        const user = await dataManager.getUserById(req.session.user.id);
+        res.json(user);
+    } else {
+        res.status(401).json({ message: 'Not authenticated' });
+    }
 });
 
 export default router;

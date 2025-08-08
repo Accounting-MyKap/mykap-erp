@@ -3,24 +3,7 @@ import axios from 'axios';
 // Tipo para usuario
 export type User = { _id: string; firstName: string; lastName: string; email: string };
 
-// La URL base de nuestra API con fallback inteligente para Vercel Lite
-const getApiBaseUrl = () => {
-  // Si está definida la variable de entorno, usarla
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-  
-  // Si estamos en producción (Vercel), usar las Vercel Functions
-  if (window.location.hostname !== 'localhost') {
-    // Usar las Vercel Functions en el mismo dominio
-    return '/api';
-  }
-  
-  // En desarrollo local, usar localhost
-  return 'http://localhost:3000/api';
-};
-
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE_URL = '/api';
 
 // Creamos una instancia de axios que usaremos para todas las peticiones.
 // Esto nos permite configurar cosas como la URL base y los encabezados en un solo lugar.

@@ -103,50 +103,52 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Configurar sesión después de que MongoDB esté conectado
+const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+    if (req.session && req.session.user) { 
+        return next(); 
+    }
+    res.status(401).json({ message: 'Unauthorized' });
+};
+
+// Configurar sesión y rutas después de que MongoDB esté conectado
 mongoose.connection.once('open', () => {
+    // Configurar sesión
     app.use(session({
         secret: process.env.SESSION_SECRET || 'a-very-strong-secret-to-sign-the-cookie',
         resave: false,
         saveUninitialized: false,
-        store: MongoStore.create({ mongoUrl: process.env.DATABASE_URL! })
+        store: MongoStore.create({ mongoUrl: process.env.DATABASE_URL! }),
+        cookie: {
+            secure: false, // Set to true in production with HTTPS
+            httpOnly: true,
+            maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        }
     }));
     logger.info("✅ Session store configured with MongoDB");
+    
+    // =================================================================
+    // --- API ROUTES ---
+    // =================================================================
+    
+    // Aplicar rate limiting específico para autenticación
+    app.use('/api/auth', authLimiter);
+    
+    // Endpoint de health check (sin autenticación)
+    app.get('/api/health', healthCheckEndpoint);
+    
+    // Middleware para asegurar conexión a la base de datos
+    app.use('/api', ensureConnection);
+    
+    // Aplicar autenticación a rutas protegidas
+    app.use('/api/prospects', isAuthenticated);
+    app.use('/api/lenders', isAuthenticated);
+    app.use('/api/credits', isAuthenticated);
+    
+    // Montar todas las rutas de la API
+    app.use('/api', apiRoutes);
+    
+    logger.info("✅ API routes configured");
 });
-
-// Configuración temporal de sesión sin store para desarrollo
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'a-very-strong-secret-to-sign-the-cookie',
-    resave: false,
-    saveUninitialized: false
-}));
-
-const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-    if (req.session.userId) { return next(); }
-    res.status(401).json({ message: 'Unauthorized' });
-};
-
-
-// =================================================================
-// --- API ROUTES ---
-// =================================================================
-
-// Aplicar rate limiting específico para autenticación
-app.use('/api/auth', authLimiter);
-
-// Endpoint de health check (sin autenticación)
-app.get('/api/health', healthCheckEndpoint);
-
-// Aplicar middleware de verificación de conexión a todas las rutas de API
-app.use('/api', ensureConnection);
-
-// Aplicar autenticación para rutas protegidas
-app.use('/api/prospects', isAuthenticated);
-app.use('/api/lenders', isAuthenticated);
-app.use('/api/credits', isAuthenticated);
-
-// Usar el router principal que maneja todas las rutas
-app.use('/api', apiRoutes);
 
 
 // =================================================================

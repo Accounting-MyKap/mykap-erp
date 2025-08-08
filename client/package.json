@@ -4,14 +4,15 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "run-p dev:api dev:app",
+    "dev:api": "tsx api/server.ts",
+    "dev:app": "wait-on http://localhost:3000/api/health && vite",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "build-server": "tsc api/server.ts --outDir dist --target es2020 --module commonjs --esModuleInterop --allowSyntheticDefaultImports --resolveJsonModule --skipLibCheck",
-    "start-server": "npm run build-server && node dist/api/server.js",
-    "dev-server": "tsx api/server.ts"
+    "start-server": "npm run build-server && node dist/api/server.js"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -48,11 +49,13 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
+    "npm-run-all": "^4.1.5",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.20.3",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.35.1",
-    "vite": "^7.0.4"
+    "vite": "^7.0.4",
+    "wait-on": "^8.0.4"
   }
 }
