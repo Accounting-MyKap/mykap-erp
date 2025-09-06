@@ -108,27 +108,6 @@ const SettingsPage: React.FC = () => {
                     </div>
                 </form>
             </div>
-            
-            <style>{`
-                .input-field {
-                    appearance: none;
-                    border-radius: 0.375rem;
-                    position: relative;
-                    display: block;
-                    width: 100%;
-                    padding: 0.5rem 0.75rem;
-                    border: 1px solid #D1D5DB;
-                    background-color: #FFFFFF;
-                    color: #111827;
-                    font-size: 0.875rem;
-                }
-                .input-field:focus {
-                    outline: none;
-                    --tw-ring-color: #3B82F6;
-                    border-color: #3B82F6;
-                    box-shadow: 0 0 0 1px #3B82F6;
-                }
-            `}</style>
         </DashboardLayout>
     );
 };
