@@ -64,14 +64,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(currentUser);
       const userProfile = await fetchProfile(currentUser);
       setProfile(userProfile);
-      // Ensure loading is false after the first auth event
-      if (loading) setLoading(false);
+      setLoading(false); // Also set loading to false on auth changes
     });
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [loading]);
+  }, []); // <-- CRITICAL FIX: Changed [loading] to [] to prevent re-subscribing.
 
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
