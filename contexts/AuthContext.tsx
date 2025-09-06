@@ -46,10 +46,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // onAuthStateChange is the single source of truth for the session.
+    // It fires once on initial load with the current session state, and
+    // again whenever the auth state changes.
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       const currentUser = session?.user ?? null;
       setUser(currentUser);
+      // This will fetch the profile on sign-in, or return null on sign-out.
       const userProfile = await fetchProfile(currentUser);
       setProfile(userProfile);
       setLoading(false);
@@ -61,12 +65,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-    // Manually clear state for immediate UI feedback. The listener will also
-    // fire, but this ensures the state is cleared without delay.
-    setSession(null);
-    setUser(null);
-    setProfile(null);
+    const { error } = await supabase.auth.signOut();
+     if (error) {
+        console.error("Error signing out:", error.message);
+    }
+    // State updates are now handled exclusively by the onAuthStateChange listener,
+    // which acts as the single source of truth. This prevents race conditions
+    // and ensures the application state is always consistent with the auth backend.
   }, []);
 
   const updateProfile = useCallback(async (updatedProfile: Partial<Profile>) => {
