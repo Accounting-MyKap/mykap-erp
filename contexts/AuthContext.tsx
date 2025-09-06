@@ -73,9 +73,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { error } = await supabase.auth.signOut();
     if (error) {
         console.error('Error signing out:', error.message);
+    } else {
+        // Manually clear state to ensure an immediate and reliable UI update,
+        // triggering the declarative redirect in ProtectedRoute.
+        setSession(null);
+        setUser(null);
+        setProfile(null);
     }
-    // State updates are now handled exclusively by the onAuthStateChange listener
-    // for a single source of truth, preventing race conditions.
   }, []);
 
   const updateProfile = useCallback(async (updatedProfile: Partial<Profile>) => {

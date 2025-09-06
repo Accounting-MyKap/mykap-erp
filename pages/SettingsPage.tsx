@@ -37,27 +37,32 @@ const SettingsPage: React.FC = () => {
         setIsSaving(true);
         setNotification(null);
 
-        const updatedProfileData = {
-            first_name: formData.first_name,
-            last_name: formData.last_name,
-            middle_name: formData.middle_name || null,
-            second_surname: formData.second_surname || null,
-            phone_number: formData.phone_number || null,
-        };
-
-        const { error } = await updateProfile(updatedProfileData);
-
-        if (error) {
-            setNotification({ type: 'error', message: `Error updating profile: ${error.message}` });
-        } else {
-            setNotification({ type: 'success', message: 'Profile updated successfully!' });
+        try {
+            const updatedProfileData = {
+                first_name: formData.first_name,
+                last_name: formData.last_name,
+                middle_name: formData.middle_name || null,
+                second_surname: formData.second_surname || null,
+                phone_number: formData.phone_number || null,
+            };
+    
+            const { error } = await updateProfile(updatedProfileData);
+    
+            if (error) {
+                setNotification({ type: 'error', message: `Error updating profile: ${error.message}` });
+            } else {
+                setNotification({ type: 'success', message: 'Profile updated successfully!' });
+            }
+        } catch (err) {
+            console.error(err);
+            setNotification({ type: 'error', message: 'An unexpected error occurred.' });
+        } finally {
+            setIsSaving(false);
+            // Clear the notification after 3 seconds for a better user experience
+            setTimeout(() => {
+                setNotification(null);
+            }, 3000);
         }
-        setIsSaving(false);
-
-        // Clear the notification after 3 seconds for a better user experience
-        setTimeout(() => {
-            setNotification(null);
-        }, 3000);
     };
 
     if (authLoading) {
