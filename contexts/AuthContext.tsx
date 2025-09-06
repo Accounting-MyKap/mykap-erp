@@ -46,10 +46,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // The onAuthStateChange listener is the single source of truth.
-    // It fires immediately with the current session, so we don't need a
-    // separate getSession() call. This eliminates the race condition that
-    // was causing state corruption and application freezes.
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       const currentUser = session?.user ?? null;
@@ -65,17 +61,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const signOut = useCallback(async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-        console.error('Error signing out:', error.message);
-    }
-    // State is cleared reliably via the onAuthStateChange listener.
+    await supabase.auth.signOut();
+    // Manually clear state for immediate UI feedback. The listener will also
+    // fire, but this ensures the state is cleared without delay.
+    setSession(null);
+    setUser(null);
+    setProfile(null);
   }, []);
 
   const updateProfile = useCallback(async (updatedProfile: Partial<Profile>) => {
+    // Fetch the latest user data directly from Supabase to ensure the session is valid,
+    // avoiding any potential stale state issues from React's render cycle.
+    const { data: { user } } = await supabase.auth.getUser();
+
     if (!user) {
         return { error: { message: 'User not authenticated' } };
     }
+
     const { data, error } = await supabase
         .from('profiles')
         .update(updatedProfile)
@@ -84,10 +86,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .single();
 
     if (!error && data) {
+        // Update local profile state upon successful DB update.
         setProfile(data);
     }
     return { error };
-  }, [user]);
+  }, []); // No dependencies needed as we fetch the user inside.
 
   const value = {
     session,
