@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '../services/supabase';
 import { Session, User } from '@supabase/supabase-js';
 
@@ -69,12 +69,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    setProfile(null); // Clear profile on sign out
-  };
+  const signOut = useCallback(async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+        console.error('Error signing out:', error.message);
+    }
+    // State updates are now handled exclusively by the onAuthStateChange listener
+    // for a single source of truth, preventing race conditions.
+  }, []);
 
-  const updateProfile = async (updatedProfile: Partial<Profile>) => {
+  const updateProfile = useCallback(async (updatedProfile: Partial<Profile>) => {
     if (!user) {
         return { error: { message: 'User not authenticated' } };
     }
@@ -89,7 +93,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setProfile(data);
     }
     return { error };
-  };
+  }, [user]); // user is a dependency because we use user.id
 
   const value = {
     session,

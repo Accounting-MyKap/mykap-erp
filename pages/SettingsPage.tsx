@@ -53,6 +53,11 @@ const SettingsPage: React.FC = () => {
             setNotification({ type: 'success', message: 'Profile updated successfully!' });
         }
         setIsSaving(false);
+
+        // Clear the notification after 3 seconds for a better user experience
+        setTimeout(() => {
+            setNotification(null);
+        }, 3000);
     };
 
     if (authLoading) {

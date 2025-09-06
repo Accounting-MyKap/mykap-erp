@@ -18,7 +18,8 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle }) => {
 
     const handleSignOut = async () => {
         await signOut();
-        navigate('/login');
+        // Navigation is now handled declaratively by the ProtectedRoute component
+        // which reacts to the auth state change, eliminating potential race conditions.
     };
 
     useEffect(() => {
