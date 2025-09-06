@@ -91,26 +91,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateProfile = useCallback(async (updatedProfile: Partial<Profile>) => {
     console.log('%c[Update Profile] Attempting to update profile...', 'color: #28a745; font-weight: bold;', updatedProfile);
     
-    // Step 1: Get the absolute latest session data. This can trigger a token refresh.
-    console.log('[Update Profile] Getting latest session to ensure token is fresh...');
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-
-    if (sessionError) {
-      console.error('[Update Profile] Error getting session:', sessionError);
-      return { error: sessionError };
-    }
-
-    if (!sessionData.session || !sessionData.session.user) {
-      console.error('[Update Profile] Update failed: User not authenticated or session expired.');
-      // Fail-safe: If the session is invalid, force a sign out to clean up the UI state.
-      await signOut();
-      return { error: { message: 'User not authenticated or session has expired.' } };
+    // Rely on the user object from state, which is kept current by the onAuthStateChange listener.
+    // This avoids a race condition with manual session fetching.
+    if (!user) {
+        console.error('[Update Profile] Update failed: User not authenticated.');
+        return { error: { message: 'User not authenticated.' } };
     }
     
-    const user = sessionData.session.user;
-    console.log('[Update Profile] Session validated for user:', user.id);
+    console.log('[Update Profile] User validated from context state:', user.id);
 
-    // Step 2: Perform the update with the validated user ID.
+    // Perform the update with the validated user ID from state.
     console.log('[Update Profile] Sending update to Supabase...');
     const { data, error } = await supabase
         .from('profiles')
@@ -127,7 +117,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     
     return { error };
-  }, [signOut]);
+  }, [user]); // Depend on the user state object.
 
   const value = {
     session,
