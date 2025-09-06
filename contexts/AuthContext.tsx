@@ -46,32 +46,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // onAuthStateChange is the single source of truth for the session.
-    // It fires once on initial load with the current session state, and
-    // again whenever the auth state changes.
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // onAuthStateChange is the single source of truth. It fires on initial load,
+    // sign-in, and sign-out, ensuring the React state is always in sync.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       const currentUser = session?.user ?? null;
       setUser(currentUser);
-      // This will fetch the profile on sign-in, or return null on sign-out.
+      
+      // Fetch the profile if a user exists, otherwise clear it. This handles both
+      // login (fetches profile) and logout (clears profile) gracefully.
       const userProfile = await fetchProfile(currentUser);
       setProfile(userProfile);
+      
       setLoading(false);
     });
 
+    // Unsubscribe from the listener when the component unmounts.
     return () => {
-      authListener.subscription.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
+  // The signOut function now only notifies Supabase. The onAuthStateChange listener
+  // above will then handle clearing the state, eliminating the race condition.
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
-     if (error) {
+    if (error) {
         console.error("Error signing out:", error.message);
     }
-    // State updates are now handled exclusively by the onAuthStateChange listener,
-    // which acts as the single source of truth. This prevents race conditions
-    // and ensures the application state is always consistent with the auth backend.
   }, []);
 
   const updateProfile = useCallback(async (updatedProfile: Partial<Profile>) => {
@@ -95,7 +97,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setProfile(data);
     }
     return { error };
-  }, []); // No dependencies needed as we fetch the user inside.
+  }, []);
 
   const value = {
     session,
