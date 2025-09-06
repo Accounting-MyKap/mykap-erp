@@ -46,39 +46,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      const userProfile = await fetchProfile(currentUser);
-      setProfile(userProfile);
-      setLoading(false);
-    };
-    
-    getInitialSession();
-
+    // The onAuthStateChange listener is the single source of truth.
+    // It fires immediately with the current session, so we don't need a
+    // separate getSession() call. This eliminates the race condition that
+    // was causing state corruption and application freezes.
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       const userProfile = await fetchProfile(currentUser);
       setProfile(userProfile);
-      setLoading(false); // Also set loading to false on auth changes
+      setLoading(false);
     });
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, []); // <-- CRITICAL FIX: Changed [loading] to [] to prevent re-subscribing.
+  }, []);
 
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
         console.error('Error signing out:', error.message);
     }
-    // The onAuthStateChange listener is now the single source of truth
-    // for state changes, ensuring reliability.
+    // State is cleared reliably via the onAuthStateChange listener.
   }, []);
 
   const updateProfile = useCallback(async (updatedProfile: Partial<Profile>) => {
