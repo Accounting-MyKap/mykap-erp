@@ -24,6 +24,21 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper function to fetch a user's profile
+const fetchProfile = async (user: User | null): Promise<Profile | null> => {
+    if (!user) return null;
+    const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+    if (error) {
+        console.error('Error fetching profile:', error.message);
+        return null;
+    }
+    return profileData;
+}
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -34,15 +49,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const getInitialSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        setProfile(profileData);
-      }
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      const userProfile = await fetchProfile(currentUser);
+      setProfile(userProfile);
       setLoading(false);
     };
     
@@ -50,36 +60,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        setProfile(profileData);
-      } else {
-        setProfile(null);
-      }
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      const userProfile = await fetchProfile(currentUser);
+      setProfile(userProfile);
+      // Ensure loading is false after the first auth event
       if (loading) setLoading(false);
     });
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [loading]);
 
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
         console.error('Error signing out:', error.message);
-    } else {
-        // Manually clear state to ensure an immediate and reliable UI update,
-        // triggering the declarative redirect in ProtectedRoute.
-        setSession(null);
-        setUser(null);
-        setProfile(null);
     }
+    // The onAuthStateChange listener is now the single source of truth
+    // for state changes, ensuring reliability.
   }, []);
 
   const updateProfile = useCallback(async (updatedProfile: Partial<Profile>) => {
@@ -97,7 +97,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setProfile(data);
     }
     return { error };
-  }, [user]); // user is a dependency because we use user.id
+  }, [user]);
 
   const value = {
     session,
