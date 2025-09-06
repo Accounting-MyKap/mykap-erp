@@ -46,45 +46,72 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // onAuthStateChange is the single source of truth. It fires on initial load,
-    // sign-in, and sign-out, ensuring the React state is always in sync.
+    console.log('Setting up onAuthStateChange listener...');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log(`%c[Auth State Change] Event: ${_event}`, 'color: #007bff; font-weight: bold;', { session });
+
       setSession(session);
       const currentUser = session?.user ?? null;
       setUser(currentUser);
-      
-      // Fetch the profile if a user exists, otherwise clear it. This handles both
-      // login (fetches profile) and logout (clears profile) gracefully.
-      const userProfile = await fetchProfile(currentUser);
-      setProfile(userProfile);
+
+      if (currentUser) {
+        console.log('[Auth State Change] Fetching profile for user:', currentUser.id);
+        const userProfile = await fetchProfile(currentUser);
+        setProfile(userProfile);
+        console.log('[Auth State Change] Profile set:', userProfile);
+      } else {
+        console.log('[Auth State Change] No user session, clearing profile.');
+        setProfile(null);
+      }
       
       setLoading(false);
     });
 
-    // Unsubscribe from the listener when the component unmounts.
     return () => {
+      console.log('Unsubscribing from onAuthStateChange listener.');
       subscription.unsubscribe();
     };
   }, []);
 
-  // The signOut function now only notifies Supabase. The onAuthStateChange listener
-  // above will then handle clearing the state, eliminating the race condition.
   const signOut = useCallback(async () => {
+    console.log('%c[Sign Out] Attempting to sign out...', 'color: #dc3545; font-weight: bold;');
     const { error } = await supabase.auth.signOut();
+    
     if (error) {
-        console.error("Error signing out:", error.message);
+        console.error('[Sign Out] Supabase signOut error:', error);
+    } else {
+        console.log('[Sign Out] Supabase sign out successful. Manually clearing local state for immediate UI update.');
+        // This manual clear is crucial for UI responsiveness and preventing "zombie states".
+        setSession(null);
+        setUser(null);
+        setProfile(null);
     }
   }, []);
 
   const updateProfile = useCallback(async (updatedProfile: Partial<Profile>) => {
-    // Fetch the latest user data directly from Supabase to ensure the session is valid,
-    // avoiding any potential stale state issues from React's render cycle.
-    const { data: { user } } = await supabase.auth.getUser();
+    console.log('%c[Update Profile] Attempting to update profile...', 'color: #28a745; font-weight: bold;', updatedProfile);
+    
+    // Step 1: Get the absolute latest session data. This can trigger a token refresh.
+    console.log('[Update Profile] Getting latest session to ensure token is fresh...');
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
-    if (!user) {
-        return { error: { message: 'User not authenticated' } };
+    if (sessionError) {
+      console.error('[Update Profile] Error getting session:', sessionError);
+      return { error: sessionError };
     }
 
+    if (!sessionData.session || !sessionData.session.user) {
+      console.error('[Update Profile] Update failed: User not authenticated or session expired.');
+      // Fail-safe: If the session is invalid, force a sign out to clean up the UI state.
+      await signOut();
+      return { error: { message: 'User not authenticated or session has expired.' } };
+    }
+    
+    const user = sessionData.session.user;
+    console.log('[Update Profile] Session validated for user:', user.id);
+
+    // Step 2: Perform the update with the validated user ID.
+    console.log('[Update Profile] Sending update to Supabase...');
     const { data, error } = await supabase
         .from('profiles')
         .update(updatedProfile)
@@ -92,12 +119,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .select()
         .single();
 
-    if (!error && data) {
-        // Update local profile state upon successful DB update.
+    if (error) {
+        console.error('[Update Profile] Supabase update error:', error);
+    } else if (data) {
+        console.log('[Update Profile] Update successful. New profile data:', data);
         setProfile(data);
     }
+    
     return { error };
-  }, []);
+  }, [signOut]);
 
   const value = {
     session,
